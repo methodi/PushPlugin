@@ -105,6 +105,7 @@ public class GCMIntentService extends GCMBaseIntentService {
 				defaults = Integer.parseInt(extras.getString("defaults"));
 			} catch (NumberFormatException e) {}
 		}
+		
 		NotificationCompat.Builder mBuilder =
 			new NotificationCompat.Builder(context)
 				.setDefaults(defaults)
@@ -112,12 +113,22 @@ public class GCMIntentService extends GCMBaseIntentService {
 				.setWhen(System.currentTimeMillis())
 				.setContentTitle(extras.getString("title"))
 				.setTicker(extras.getString("title"))
-				.setContentIntent(contentIntent);
+				.setContentIntent(contentIntent)
+				.setAutoCancel(true);
 		
 		String soundUrl = extras.getString("sound");
 		if (soundUrl != null) {
-			Uri uri = Uri.parse(soundUrl);
-			mBuilder.setAutoCancel(true).setSound(uri);
+			if(soundUrl.equals("mute")){
+				defaults &= ~Notification.DEFAULT_SOUND;
+			}else{
+				Uri uri = Uri.parse(soundUrl);
+				mBuilder.setSound(uri);
+			}
+		}
+		
+		String vibrate = extras.getString("vibrate");
+		if(vibrate != null && vibrate.equals("mute")){
+			defaults &= ~Notification.DEFAULT_VIBRATE;
 		}
 		
 		String message = extras.getString("message");
