@@ -9,6 +9,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
@@ -20,6 +22,11 @@ import com.google.android.gcm.GCMBaseIntentService;
 public class GCMIntentService extends GCMBaseIntentService {
 
 	private static final String TAG = "GCMIntentService";
+
+    /**
+     * The name for the shared preferences key
+     */
+    static final String KEY = "badge";
 	
 	public GCMIntentService() {
 		super("GCMIntentService");
@@ -123,6 +130,9 @@ public class GCMIntentService extends GCMBaseIntentService {
 		String msgcnt = extras.getString("msgcnt");
 		if (msgcnt != null) {
 			mBuilder.setNumber(Integer.parseInt(msgcnt));
+			saveBadge(Integer.parseInt(msgcnt));
+		}else{
+			clearBadge();
 		}
 		
 		int notId = 0;
@@ -139,6 +149,36 @@ public class GCMIntentService extends GCMBaseIntentService {
 		
 		mNotificationManager.notify(appName, notId, mBuilder.build());
 	}
+
+    /**
+     * Persist the badge of the app icon so that `getBadge` is able to return
+     * the badge number back to the client.
+     *
+     * @param badge
+     *      The badge of the app icon
+     */
+    private void saveBadge (int badge) {
+        Editor editor = getSharedPreferences().edit();
+
+        editor.putInt(KEY, badge);
+        editor.apply();
+    }
+
+    /**
+     * Clears the badge of the app icon.
+     */
+    private void clearBadge() {
+    	saveBadge(0);
+    }
+
+    /**
+     * The Local storage for the application.
+     */
+    private SharedPreferences getSharedPreferences () {
+        Context context = getApplicationContext();
+
+        return context.getSharedPreferences(KEY, Context.MODE_PRIVATE);
+    }
 	
 	private static String getAppName(Context context)
 	{
