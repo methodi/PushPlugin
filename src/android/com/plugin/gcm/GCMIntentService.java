@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.ApplicationInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
@@ -88,7 +89,7 @@ public class GCMIntentService extends GCMBaseIntentService {
 	}
 
 	public void createNotification(Context context, Bundle extras)
-	{
+	{Log.d("PushPlugin",extras.toString());
 		NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 		String appName = getAppName(this);
 
@@ -105,6 +106,16 @@ public class GCMIntentService extends GCMBaseIntentService {
 				defaults = Integer.parseInt(extras.getString("defaults"));
 			} catch (NumberFormatException e) {}
 		}
+		String soundUrl = extras.getString("sound");
+		String vibrate = extras.getString("vibrate");
+
+		if (soundUrl != null && soundUrl.equals("mute")){
+			defaults &= ~Notification.DEFAULT_SOUND;
+		}
+		if(vibrate != null && vibrate.equals("mute")){
+			defaults &= ~Notification.DEFAULT_VIBRATE;
+		}
+		Log.d("PushPlugin",Integer.toString(defaults));
 		
 		NotificationCompat.Builder mBuilder =
 			new NotificationCompat.Builder(context)
@@ -116,7 +127,6 @@ public class GCMIntentService extends GCMBaseIntentService {
 				.setContentIntent(contentIntent)
 				.setAutoCancel(true);
 		
-		String soundUrl = extras.getString("sound");
 		if (soundUrl != null) {
 			if(soundUrl.equals("mute")){
 				defaults &= ~Notification.DEFAULT_SOUND;
@@ -126,10 +136,6 @@ public class GCMIntentService extends GCMBaseIntentService {
 			}
 		}
 		
-		String vibrate = extras.getString("vibrate");
-		if(vibrate != null && vibrate.equals("mute")){
-			defaults &= ~Notification.DEFAULT_VIBRATE;
-		}
 		
 		String message = extras.getString("message");
 		if (message != null) {
@@ -141,10 +147,12 @@ public class GCMIntentService extends GCMBaseIntentService {
 		String msgcnt = extras.getString("msgcnt");
 		if (msgcnt != null) {
 			mBuilder.setNumber(Integer.parseInt(msgcnt));
-			saveBadge(Integer.parseInt(msgcnt));
 		}else{
 			clearBadge();
 		}
+		PushHandlerActivity.badgeCount++;
+		saveBadge(PushHandlerActivity.badgeCount);
+		mBuilder.setNumber(PushHandlerActivity.badgeCount);
 		
 		int notId = 0;
 		
@@ -157,8 +165,9 @@ public class GCMIntentService extends GCMBaseIntentService {
 		catch(Exception e) {
 			Log.e(TAG, "Number format exception - Error parsing Notification ID" + e.getMessage());
 		}
+		Notification notification = mBuilder.build();
 		
-		mNotificationManager.notify(appName, notId, mBuilder.build());
+		mNotificationManager.notify(appName, notId, notification);
 	}
 
     /**
@@ -169,10 +178,13 @@ public class GCMIntentService extends GCMBaseIntentService {
      *      The badge of the app icon
      */
     private void saveBadge (int badge) {
-        Editor editor = getSharedPreferences().edit();
-
-        editor.putInt(KEY, badge);
-        editor.apply();
+        Intent intent = new Intent("android.intent.action.BADGE_COUNT_UPDATE");
+        intent.putExtra("badge_count", badge);
+        // 메인 메뉴에 나타나는 어플의  패키지 명
+        intent.putExtra("badge_count_package_name", "org.hanmaum.chat");
+        // 메인메뉴에 나타나는 어플의 클래스 명
+        intent.putExtra("badge_count_class_name", "org.hanmaum.chat.HanmaumChat");
+        sendBroadcast(intent);
     }
 
     /**
@@ -180,15 +192,6 @@ public class GCMIntentService extends GCMBaseIntentService {
      */
     private void clearBadge() {
     	saveBadge(0);
-    }
-
-    /**
-     * The Local storage for the application.
-     */
-    private SharedPreferences getSharedPreferences () {
-        Context context = getApplicationContext();
-
-        return context.getSharedPreferences(KEY, Context.MODE_PRIVATE);
     }
 	
 	private static String getAppName(Context context)
