@@ -10,7 +10,8 @@ import android.util.Log;
 
 public class PushHandlerActivity extends Activity
 {
-	private static String TAG = "PushHandlerActivity"; 
+	private static String TAG = "PushHandlerActivity";
+	public static int badgeCount = 0;
 
 	/*
 	 * this activity will be started if the user touches a notification that we own. 
@@ -47,7 +48,7 @@ public class PushHandlerActivity extends Activity
             
             originalExtras.putBoolean("foreground", false);
             originalExtras.putBoolean("coldstart", !isPushPluginActive);
-
+            badgeCount = 0;
 			PushPlugin.sendExtras(originalExtras);
 		}
 	}
